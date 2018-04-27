@@ -11,9 +11,8 @@ let scene = new THREE.Scene();
 let camera = new THREE.PerspectiveCamera(45, WIDTH / HEIGHT, .1, 1000);
 let renderer = new THREE.WebGLRenderer();
 
-function axis(color, vec1, vec2) {
+function axis(color, vec1, vec2, bool) {
   let g = new THREE.Geometry();
-  // let m = new THREE.LineBasicMaterial({
   let m = new THREE.LineDashedMaterial({
   	color: color,
     dashSize: 3,
@@ -23,33 +22,36 @@ function axis(color, vec1, vec2) {
   g.vertices.push(vec2);
   let axis = new THREE.Line(g,m);
   axis.computeLineDistances();
-  axis.position.z -= .05;
+  // axis.position.z = bool ? 0 : -.05;
+  axis.position.z = 0;
   scene.add(axis);
 }
 
 function init() {
-  // x-axis
-  axis('red', new THREE.Vector3(-100,0,0), new THREE.Vector3(100,0,0));
-
-  // y-axis
-  axis('green', new THREE.Vector3(0,-100,0), new THREE.Vector3(0,100,0));
-
-  // z-axis
-  axis('blue', new THREE.Vector3(0,0,-100), new THREE.Vector3(0,0,100));
-
   renderer.setSize(WIDTH, HEIGHT);
 
   let cvs = document.getElementById('cvs');
   cvs.innerHTML = '';
   cvs.appendChild(renderer.domElement);
-};
-init();
 
-function set_light() {
+  // x-axis
+  for(let x = -50; x <= 50; x += 5) {
+    axis('red', new THREE.Vector3(-100,x,0), new THREE.Vector3(100,x,0), x===0);
+    // axis('red', new THREE.Vector3(-100,0,0), new THREE.Vector3(100,0,0));
+  }
+  // y-axis
+  for(let y = -50; y <= 50; y += 5) {
+    axis('green', new THREE.Vector3(y,-100,0), new THREE.Vector3(y,100,0), y===0);
+    // axis('green', new THREE.Vector3(0,-100,0), new THREE.Vector3(0,100,0));
+  }
+
+  // z-axis
+  axis('blue', new THREE.Vector3(0,0,-100), new THREE.Vector3(0,0,100));
+
   let light = new THREE.AmbientLight( '#fff', 1 );
   scene.add(light);
 };
-set_light();
+init();
 
 function set_floor() {
   let flr_geometry = new THREE.PlaneGeometry(TOTAL_SIZE, TOTAL_SIZE);
@@ -58,42 +60,62 @@ function set_floor() {
     map: flr_texture,
   });
   let floor = new THREE.Mesh(flr_geometry, flr_material);
-  // floor.rotation.x = Math.PI;
-  // floor.rotation.y = Math.PI;
   scene.add(floor);
 
   let flb_geometry = new THREE.PlaneGeometry(TOTAL_SIZE, TOTAL_SIZE);
-  let flb_texture = new THREE.TextureLoader().load(skate_rink);
   let flb_material = new THREE.MeshLambertMaterial({
-    map: flb_texture,
+    color: '#fff',
     side: THREE.BackSide
   });
   let floor_back = new THREE.Mesh(flb_geometry, flb_material);
-  // floor_back.rotation.x = Math.PI;
-  // floor_back.rotation.y = Math.PI;
   scene.add(floor_back);
 };
 set_floor();
 
-function set_camera() {
-  camera.position.set(-TOTAL_SIZE, -TOTAL_SIZE, TOTAL_SIZE);
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
-  // camera.rotation.x = 0;
-  // camera.rotation.y = 0;
-  camera.rotation.z = 0;
-  // camera.rotation.z = Math.PI;
+function create_shape_1() {
+  let g = new THREE.CubeGeometry(5, 15, 5);
+  let c_m = new THREE.MeshBasicMaterial({
+    color: '#f90'
+  });
+  let c = new THREE.Mesh(g, c_m);
+  c.position.x = -32.5;
+  c.position.y = -27.5;
+  c.position.z = 2.5;
+  scene.add(c);
+
+  // let s = new THREE.PlaneGeometry(20, TOTAL_SIZE);
+  // let flb_material = new THREE.MeshLambertMaterial({
+  //   color: '#fff',
+  //   side: THREE.BackSide
+  // });
+  // let floor_back = new THREE.Mesh(flb_geometry, flb_material);
+  // scene.add(floor_back);
+  // polyhedron = createMesh(new THREE.PolyhedronGeometry(vertices,faces,controls.radius),controls.detail));
 };
-set_camera();
+create_shape_1();
 
-let radian = 0;
-function render() {
-  radian = (radian + (Math.PI / 270)) % (Math.PI * 2);
 
+
+
+
+camera.position.set(-TOTAL_SIZE, -TOTAL_SIZE, TOTAL_SIZE * 2);
+
+function rotateView(radian) {
   camera.position.x = TOTAL_SIZE * Math.cos(radian);
-  // camera.position.y = TOTAL_SIZE * Math.sin(radian);
 
   camera.lookAt(new THREE.Vector3(0, 0, 0));
   camera.rotation.z = 0;
+}
+
+let view = false;
+let radian = Math.PI;
+rotateView(radian);
+function render() {
+  if(view) {
+    radian = (radian + (Math.PI / 270)) % (Math.PI * 2);
+
+    rotateView(radian);
+  }
   renderer.render(scene, camera);
   requestAnimationFrame(render);
 }
