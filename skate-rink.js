@@ -13,12 +13,17 @@ let renderer = new THREE.WebGLRenderer();
 
 function axis(color, vec1, vec2) {
   let g = new THREE.Geometry();
-  let m = new THREE.LineBasicMaterial({
-  	color: color
+  // let m = new THREE.LineBasicMaterial({
+  let m = new THREE.LineDashedMaterial({
+  	color: color,
+    dashSize: 3,
+    gapSize: 2
   });
   g.vertices.push(vec1);
   g.vertices.push(vec2);
   let axis = new THREE.Line(g,m);
+  axis.computeLineDistances();
+  axis.position.z -= .05;
   scene.add(axis);
 }
 
@@ -80,14 +85,12 @@ function set_camera() {
 };
 set_camera();
 
-let i = -1;
+let radian = 0;
 function render() {
-  if(camera.position.x > TOTAL_SIZE) {
-    i = -1;
-  } else if(camera.position.x < -TOTAL_SIZE) {
-    i = 1;
-  }
-  camera.position.x += i;
+  radian = (radian + (Math.PI / 270)) % (Math.PI * 2);
+
+  camera.position.x = TOTAL_SIZE * Math.cos(radian);
+  // camera.position.y = TOTAL_SIZE * Math.sin(radian);
 
   camera.lookAt(new THREE.Vector3(0, 0, 0));
   camera.rotation.z = 0;
