@@ -7,12 +7,13 @@ const HEIGHT = window.innerHeight;
 const TOTAL_SIZE = 512;
 
 const GRID_SIZE = TOTAL_SIZE * .0625;
+const BASE_COLOR = ['#f60', '#3cc', '#09f'];
 
 let scene = new THREE.Scene();
 let camera = new THREE.PerspectiveCamera(45, WIDTH / HEIGHT, .1, 10000);
 let renderer = new THREE.WebGLRenderer();
 
-function axis(color, vec1, vec2, bool) {
+function axis(color, vec1, vec2) {
   let g = new THREE.Geometry();
   let m = new THREE.LineDashedMaterial({
   	color: color,
@@ -36,13 +37,12 @@ function init() {
 
   // x-axis
   for(let x = -TOTAL_SIZE; x <= TOTAL_SIZE; x += GRID_SIZE) {
-    axis('red', new THREE.Vector3(-TOTAL_SIZE,x,0), new THREE.Vector3(TOTAL_SIZE,x,0), x===0);
-    // axis('red', new THREE.Vector3(-TOTAL_SIZE,0,0), new THREE.Vector3(TOTAL_SIZE,0,0));
+    axis('red', new THREE.Vector3(-TOTAL_SIZE,x,0), new THREE.Vector3(TOTAL_SIZE,x,0));
   }
+
   // y-axis
   for(let y = -TOTAL_SIZE; y <= TOTAL_SIZE; y += GRID_SIZE) {
-    axis('green', new THREE.Vector3(y,-TOTAL_SIZE,0), new THREE.Vector3(y,TOTAL_SIZE,0), y===0);
-    // axis('green', new THREE.Vector3(0,-TOTAL_SIZE,0), new THREE.Vector3(0,TOTAL_SIZE,0));
+    axis('green', new THREE.Vector3(y,-TOTAL_SIZE,0), new THREE.Vector3(y,TOTAL_SIZE,0));
   }
 
   // z-axis
@@ -87,7 +87,7 @@ function count_angle(opt) {
 function create_slope() {
   let cube_geometry = new THREE.CubeGeometry(GRID_SIZE, GRID_SIZE * 3, GRID_SIZE);
   let cube_material = new THREE.MeshBasicMaterial({
-    color: '#09f'
+    color: BASE_COLOR[0]
   });
   let cube = new THREE.Mesh(cube_geometry, cube_material);
   cube.position.x = -GRID_SIZE * 6.5;
@@ -113,23 +113,22 @@ function create_slope() {
   s.vertices = v;
   s.faces = f;
   let s_m = new THREE.MeshLambertMaterial({
-    color: '#09f'
+    color: BASE_COLOR[0]
   });
   let slope = new THREE.Mesh(s, s_m);
   scene.add(slope);
 };
 create_slope();
 
-function create_surface(x, y, z) {
+function create_surface(x, y, z, c) {
   let d = x * .5;
   x = -x;
   y /= 2;
-  console.log(y);
   z /= Math.pow(x, 2);
 
   let v = [];
   let f = [];
-  for(let i = 0, j = x; j <= 0; i++, j+=1) {
+  for(let i = 0, j = x; j <= 0; i++, j += GRID_SIZE * 0.125) {
     let h = z * Math.pow(j, 2);
     v.push(new THREE.Vector3(-d, -y, h));
     v.push(new THREE.Vector3(j + d, -y, h));
@@ -147,35 +146,68 @@ function create_surface(x, y, z) {
       f.push(new THREE.Face3(k - 1, k - 2, k + 3));
     }
   }
-  // f.push(new THREE.Face3(v.length - 1, v.length - 3, v.length - 2));
-  // f.push(new THREE.Face3(v.length - 4, v.length - 3, v.length - 1));
+  f.push(new THREE.Face3(v.length - 1, v.length - 3, v.length - 2));
+  f.push(new THREE.Face3(v.length - 4, v.length - 3, v.length - 1));
 
   let c_g = new THREE.Geometry();
   c_g.vertices = v;
   c_g.faces = f;
   let c_m = new THREE.MeshLambertMaterial({
-    color: '#09f',
-    // side:THREE.DoubleSide
+    color: c
   });
   let curve = new THREE.Mesh(c_g, c_m);
+  scene.add(curve);
   return curve;
 }
 
 function create_hathpace() {
   let cube_geometry = new THREE.CubeGeometry(GRID_SIZE, GRID_SIZE * 3, GRID_SIZE * 3);
   let cube_material = new THREE.MeshBasicMaterial({
-    color: '#09f'
+    color: BASE_COLOR[1]
   });
   let cube = new THREE.Mesh(cube_geometry, cube_material);
   cube.position.set(-GRID_SIZE * 6.5, -GRID_SIZE * 1.5, GRID_SIZE * 1.5);
   scene.add(cube);
 
-  let curve = create_surface(GRID_SIZE * 2, GRID_SIZE * 3, GRID_SIZE * 3);
-  curve.position.set(-GRID_SIZE * 5, -GRID_SIZE * 1.5, .05);
-  scene.add(curve);
+  let curve = create_surface(GRID_SIZE * 2, GRID_SIZE * 3, GRID_SIZE * 3, BASE_COLOR[1]);
+  curve.position.set(-GRID_SIZE * 5, -GRID_SIZE * 1.5, 0);
 }
 create_hathpace();
 
+function create_round_curve() {
+  let cube_geometry = new THREE.CubeGeometry(GRID_SIZE, GRID_SIZE, GRID_SIZE * 2);
+  let cube_material = new THREE.MeshBasicMaterial({
+    color: BASE_COLOR[2]
+  });
+  let cube = new THREE.Mesh(cube_geometry, cube_material);
+
+  function unit_cube(x, y) {
+    let c = cube.clone();
+    c.position.set(GRID_SIZE * x, GRID_SIZE * y, GRID_SIZE);
+    scene.add(c);
+    return c;
+  }
+
+  unit_cube(-6.5, 1.5);
+  unit_cube(-6.5, 2.5);
+  unit_cube(-6.5, 3.5);
+  unit_cube(-6.5, 4.5);
+  unit_cube(-6.5, 5.5);
+  unit_cube(-6.5, 6.5);
+  unit_cube(-5.5, 6.5);
+  unit_cube(-4.5, 6.5);
+  unit_cube(-3.5, 6.5);
+  unit_cube(-2.5, 6.5);
+  unit_cube(-1.5, 6.5);
+
+  let curve_1 = create_surface(GRID_SIZE * 2, GRID_SIZE * 2, GRID_SIZE * 2, BASE_COLOR[2]);
+  curve_1.position.set(-GRID_SIZE * 5, GRID_SIZE * 2, 0);
+
+  let curve_2 = create_surface(GRID_SIZE * 2, GRID_SIZE * 2, GRID_SIZE * 2, BASE_COLOR[2]);
+  curve_2.position.set(-GRID_SIZE * 2, GRID_SIZE * 5, 0);
+  curve_2.rotation.z = -Math.PI * .5;
+};
+create_round_curve();
 
 
 
@@ -188,7 +220,7 @@ function rotateView(radian) {
   camera.rotation.z = 0;
 }
 
-let view = false;
+let view = true;
 let radian = Math.PI * .5;
 rotateView(radian);
 function render() {
