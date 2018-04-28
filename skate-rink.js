@@ -72,16 +72,20 @@ function set_floor() {
 };
 set_floor();
 
-function count_angle(opt) {
-  if(opt.c) {
-    if(opt.a) {
-      return Math.pow(Math.pow(opt.c, 2) - Math.pow(opt.a, 2), .5);
-    } else {
-      return Math.pow(Math.pow(opt.c, 2) - Math.pow(opt.b, 2), .5);
+function shape_line() {
+  let geometry = new THREE.Geometry();
+  let m = new THREE.LineDashedMaterial({
+  	color: '#fff'
+  });
+  [].slice.call(arguments).map(function(list) {
+    let g = geometry.clone();
+    for(let i=0; i<list.length; i++) {
+      g.vertices.push(list[i]);
     }
-  } else {
-    return Math.pow(Math.pow(opt.a, 2) + Math.pow(opt.b, 2), .5);
-  }
+    let line = new THREE.Line(g, m);
+    line.computeLineDistances();
+    scene.add(line);
+  });
 }
 
 function create_slope() {
@@ -117,23 +121,56 @@ function create_slope() {
   });
   let slope = new THREE.Mesh(s, s_m);
   scene.add(slope);
+
+  shape_line([
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 4, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, 0),
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 4, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 7, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 4, 0)
+  ]);
 };
 create_slope();
 
 function create_surface(x, y, z, c) {
-  let d = x * .5;
-  x = -x;
+  let d = x * -.5;
+  let dis = GRID_SIZE * 0.125;
   y /= 2;
   z /= Math.pow(x, 2);
 
+  let c_1 = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3( d, -y, z ),
+    new THREE.Vector3( d * .5, -y, z * .5 ),
+    new THREE.Vector3( -d, -y, 0 )
+  );
+  let c_2 = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3( d, y, z ),
+    new THREE.Vector3( d * .5, y, 0 * .5 ),
+    new THREE.Vector3( -d, y, 0 )
+  );
+
+  let points_1 = c_1.getPoints( x / dis );
+  let points_2 = c_2.getPoints( x / dis );
+
   let v = [];
   let f = [];
-  for(let i = 0, j = x; j <= 0; i++, j += GRID_SIZE * 0.125) {
+
+  for(let i = 0, j = -x; j <= 0; i++, j += dis) {
     let h = z * Math.pow(j, 2);
-    v.push(new THREE.Vector3(-d, -y, h));
-    v.push(new THREE.Vector3(j + d, -y, h));
-    v.push(new THREE.Vector3(j + d, y, h));
-    v.push(new THREE.Vector3(-d, y, h));
+    v.push(new THREE.Vector3(d, -y, h));
+    v.push((points_1[i].z *= Math.pow(j, 2), points_1[i]));
+    v.push((points_2[i].z *= Math.pow(j, 2), points_2[i]));
+    v.push(new THREE.Vector3(d, y, h));
     if(i) {
       let k = 4 * i;
       f.push(new THREE.Face3(k - 4, k    , k + 1));
@@ -171,6 +208,24 @@ function create_hathpace() {
 
   let curve = create_surface(GRID_SIZE * 2, GRID_SIZE * 3, GRID_SIZE * 3, BASE_COLOR[1]);
   curve.position.set(-GRID_SIZE * 5, -GRID_SIZE * 1.5, 0);
+
+  shape_line([
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 3, GRID_SIZE * 3),
+    new THREE.Vector3(-GRID_SIZE * 7, 0, GRID_SIZE * 3),
+    new THREE.Vector3(-GRID_SIZE * 6, 0, GRID_SIZE * 3),
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 3, GRID_SIZE * 3),
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 3, GRID_SIZE * 3),
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 3, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 7, 0, GRID_SIZE * 3),
+    new THREE.Vector3(-GRID_SIZE * 7, 0, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 3, GRID_SIZE * 3),
+    new THREE.Vector3(-GRID_SIZE * 4, -GRID_SIZE * 3, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 6, 0, GRID_SIZE * 3),
+    new THREE.Vector3(-GRID_SIZE * 4, 0, 0)
+  ]);
 }
 create_hathpace();
 
@@ -181,31 +236,145 @@ function create_round_curve() {
   });
   let cube = new THREE.Mesh(cube_geometry, cube_material);
 
-  function unit_cube(x, y) {
+  function unit_cube(cube_pos) {
+    let x = cube_pos[0];
+    let y = cube_pos[1];
     let c = cube.clone();
     c.position.set(GRID_SIZE * x, GRID_SIZE * y, GRID_SIZE);
     scene.add(c);
     return c;
   }
 
-  unit_cube(-6.5, 1.5);
-  unit_cube(-6.5, 2.5);
-  unit_cube(-6.5, 3.5);
-  unit_cube(-6.5, 4.5);
-  unit_cube(-6.5, 5.5);
-  unit_cube(-6.5, 6.5);
-  unit_cube(-5.5, 6.5);
-  unit_cube(-4.5, 6.5);
-  unit_cube(-3.5, 6.5);
-  unit_cube(-2.5, 6.5);
-  unit_cube(-1.5, 6.5);
+  [
+    [-6.5, 1.5],
+    [-6.5, 2.5],
+    [-6.5, 3.5],
+    [-6.5, 4.5],
+    [-6.5, 5.5],
+    [-6.5, 6.5],
+    [-5.5, 6.5],
+    [-4.5, 6.5],
+    [-3.5, 6.5],
+    [-2.5, 6.5],
+    [-1.5, 6.5]
+  ].map(function(pos) {
+    unit_cube(pos);
+  })
 
-  let curve_1 = create_surface(GRID_SIZE * 2, GRID_SIZE * 2, GRID_SIZE * 2, BASE_COLOR[2]);
-  curve_1.position.set(-GRID_SIZE * 5, GRID_SIZE * 2, 0);
+  let surface_1 = create_surface(GRID_SIZE * 2, GRID_SIZE * 2, GRID_SIZE * 2, BASE_COLOR[2]);
+  surface_1.position.set(-GRID_SIZE * 5, GRID_SIZE * 2, 0);
 
-  let curve_2 = create_surface(GRID_SIZE * 2, GRID_SIZE * 2, GRID_SIZE * 2, BASE_COLOR[2]);
-  curve_2.position.set(-GRID_SIZE * 2, GRID_SIZE * 5, 0);
-  curve_2.rotation.z = -Math.PI * .5;
+  let surface_2 = create_surface(GRID_SIZE * 2, GRID_SIZE * 2, GRID_SIZE * 2, BASE_COLOR[2]);
+  surface_2.position.set(-GRID_SIZE * 2, GRID_SIZE * 5, 0);
+  surface_2.rotation.z = -Math.PI * .5;
+
+  let surface = function() {
+    let c_1 = new THREE.QuadraticBezierCurve3(
+    	new THREE.Vector3( -GRID_SIZE * 4, GRID_SIZE * 3, 0 ),
+    	new THREE.Vector3( -GRID_SIZE * 4, GRID_SIZE * 4, 0 ),
+    	new THREE.Vector3( -GRID_SIZE * 3, GRID_SIZE * 4, 0 )
+    );
+    let c_2 = new THREE.QuadraticBezierCurve3(
+    	new THREE.Vector3( -GRID_SIZE * 6, GRID_SIZE * 3, 0 ),
+    	new THREE.Vector3( -GRID_SIZE * 6, GRID_SIZE * 6, 0 ),
+    	new THREE.Vector3( -GRID_SIZE * 3, GRID_SIZE * 6, 0 )
+    );
+    let c_3 = new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3( -GRID_SIZE * 6, GRID_SIZE * 3, GRID_SIZE * 2 ),
+      new THREE.Vector3( -GRID_SIZE * 6, GRID_SIZE * 6, GRID_SIZE * 2 ),
+      new THREE.Vector3( -GRID_SIZE * 3, GRID_SIZE * 6, GRID_SIZE * 2 )
+    );
+
+    let len = 16;
+
+    let points_1 = c_1.getPoints( len );
+    let points_2 = c_2.getPoints( len );
+    let points_3 = c_3.getPoints( len );
+
+    let material = new THREE.LineBasicMaterial( { color : 0xff0000 } );
+
+    let points_list = [];
+    for(let i=0; i<=len; i++) {
+      let c = new THREE.QuadraticBezierCurve3(
+        points_1[i],
+        points_2[i],
+        points_3[i]
+      )
+      let points = c.getPoints( len );
+
+      points_list.push(points);
+
+      let g = new THREE.BufferGeometry().setFromPoints( points );
+      let l = new THREE.Line( g, material );
+      scene.add(l);
+    }
+    for(let i = 0; i<points_list.length; i++) {
+      for(let i = 0; i<points_list.length; i++) {
+      }
+    }
+    let v = [];
+    let f = [];
+    points_list.map(function(line_points, i) {
+      line_points.map(function(point, j) {
+        v.push(point);
+        if(i>0 && j<len){
+          let cur = i * len;
+          f.push(new THREE.Face3(cur, cur-len, cur - len + 1));
+          f.push(new THREE.Face3(cur, cur - len + 1, cur + 1));
+        }
+      });
+    });
+    console.log(v.length);
+    let c_g = new THREE.Geometry();
+    c_g.vertices = v;
+    c_g.faces = f;
+    let c_m = new THREE.MeshLambertMaterial({
+      color: 0xff0000
+    });
+    let curve = new THREE.Mesh(c_g, c_m);
+    scene.add(curve);
+
+
+    // let g_1 = new THREE.BufferGeometry().setFromPoints( points_1 );
+    // let g_2 = new THREE.BufferGeometry().setFromPoints( points_2 );
+    // let g_3 = new THREE.BufferGeometry().setFromPoints( points_3 );
+
+
+    // Create the final object to add to the scene
+    // let curve_1 = new THREE.Line( g_1, material );
+    // let curve_2 = new THREE.Line( g_2, material );
+    // let curve_3 = new THREE.Line( g_3, material );
+    // scene.add(curve_1);
+    // scene.add(curve_2);
+    // scene.add(curve_3);
+  }
+  surface();
+
+  shape_line([
+    new THREE.Vector3(-GRID_SIZE * 7, GRID_SIZE, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE * 6, GRID_SIZE, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE * 6, GRID_SIZE * 6, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE, GRID_SIZE * 6, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE, GRID_SIZE * 7, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE * 7, GRID_SIZE * 7, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE * 7, GRID_SIZE, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE * 7, GRID_SIZE, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 7, GRID_SIZE * 7, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE * 7, GRID_SIZE * 7, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE, GRID_SIZE * 7, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE, GRID_SIZE * 7, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 6, GRID_SIZE, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE * 4, GRID_SIZE, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE, GRID_SIZE * 6, GRID_SIZE * 2),
+    new THREE.Vector3(-GRID_SIZE, GRID_SIZE * 4, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 4, GRID_SIZE, 0),
+    new THREE.Vector3(-GRID_SIZE, GRID_SIZE * 4, 0)
+  ]);
 };
 create_round_curve();
 
@@ -215,12 +384,13 @@ camera.position.set(-TOTAL_SIZE, -TOTAL_SIZE, TOTAL_SIZE);
 
 function rotateView(radian) {
   camera.position.x = TOTAL_SIZE * Math.cos(radian);
+  // camera.position.y = - TOTAL_SIZE * Math.sin(radian);
 
   camera.lookAt(new THREE.Vector3(0, 0, 0));
   camera.rotation.z = 0;
 }
 
-let view = true;
+let view = false;
 let radian = Math.PI * .5;
 rotateView(radian);
 function render() {
