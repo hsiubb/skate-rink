@@ -10,7 +10,7 @@ const GRID_SIZE = TOTAL_SIZE * .0625;
 const BASE_COLOR = ['#f60', '#6d6', '#09f', '#3cc'];
 
 let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(40, WIDTH / HEIGHT, .1, 10000);
+let camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, .1, 10000);
 let renderer = new THREE.WebGLRenderer();
 
 function axis(color, vec1, vec2) {
@@ -36,24 +36,26 @@ function init() {
   cvs.innerHTML = '';
   cvs.appendChild(renderer.domElement);
 
-  // x-axis
-  for(let x = -TOTAL_SIZE; x <= TOTAL_SIZE; x += GRID_SIZE) {
-    axis('red', new THREE.Vector3(-TOTAL_SIZE,x,0), new THREE.Vector3(TOTAL_SIZE,x,0));
-  }
+  function reference_line() {
+    // x-axis
+    for(let x = -TOTAL_SIZE; x <= TOTAL_SIZE; x += GRID_SIZE) {
+      axis('red', new THREE.Vector3(-TOTAL_SIZE,x,0), new THREE.Vector3(TOTAL_SIZE,x,0));
+    }
 
-  // y-axis
-  for(let y = -TOTAL_SIZE; y <= TOTAL_SIZE; y += GRID_SIZE) {
-    axis('green', new THREE.Vector3(y,-TOTAL_SIZE,0), new THREE.Vector3(y,TOTAL_SIZE,0));
-  }
+    // y-axis
+    for(let y = -TOTAL_SIZE; y <= TOTAL_SIZE; y += GRID_SIZE) {
+      axis('green', new THREE.Vector3(y,-TOTAL_SIZE,0), new THREE.Vector3(y,TOTAL_SIZE,0));
+    }
 
-  // z-axis
-  axis('blue', new THREE.Vector3(0,0,-TOTAL_SIZE), new THREE.Vector3(0,0,TOTAL_SIZE));
+    // z-axis
+    axis('blue', new THREE.Vector3(0,0,-TOTAL_SIZE), new THREE.Vector3(0,0,TOTAL_SIZE));
+  }
+  // reference_line();
 
   let a_light = new THREE.AmbientLight( '#fff', 1 );
   scene.add(a_light);
 
-  // let d_light = new THREE.DirectionalLight("#fff", 1);
-  let d_light = new THREE.DirectionalLight("green", 1);
+  let d_light = new THREE.DirectionalLight("#385", 1);
   d_light.position.set(GRID_SIZE, GRID_SIZE * .5, GRID_SIZE);
 
   d_light.shadow.camera.near = -TOTAL_SIZE; //产生阴影的最近距离
@@ -94,7 +96,8 @@ set_floor();
 // 基于点序列显示边线
 function shape_line() {
   let geometry = new THREE.Geometry();
-  let m = new THREE.LineDashedMaterial({
+  // let m = new THREE.LineDashedMaterial({
+  let m = new THREE.LineBasicMaterial({
   	color: '#fff'
   });
   [].slice.call(arguments).map(function(list) {
@@ -106,6 +109,37 @@ function shape_line() {
     line.computeLineDistances();
     scene.add(line);
   });
+}
+
+// 斜坡
+function slope(x, y, z, c) {
+  y /= 2;
+  let v = [
+    new THREE.Vector3(0, -y, 0),
+    new THREE.Vector3(x, -y, 0),
+    new THREE.Vector3(x, -y, z),
+    new THREE.Vector3(x, y, z),
+    new THREE.Vector3(x, y, 0),
+    new THREE.Vector3(0, y, 0),
+  ];
+  let f = [
+    new THREE.Face3(0, 1, 2),
+    new THREE.Face3(0, 2, 3),
+    new THREE.Face3(0, 3, 5),
+    new THREE.Face3(3, 4, 5)
+  ];
+
+  let s = new THREE.Geometry();
+  s.vertices = v;
+  s.faces = f;
+  let s_m = new THREE.MeshLambertMaterial({
+    color: BASE_COLOR[0]
+  });
+  let slope = new THREE.Mesh(s, s_m);
+  slope.castShadow = true;
+
+  scene.add(slope);
+  return slope;
 }
 
 // 曲面
@@ -283,29 +317,9 @@ function create_slope() {
   cube.castShadow = true;
   scene.add(cube);
 
-  let v = [
-    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -7, GRID_SIZE),
-    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -7, 0),
-    new THREE.Vector3(GRID_SIZE * -3, GRID_SIZE * -7, 0),
-    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -4, GRID_SIZE),
-    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -4, 0),
-    new THREE.Vector3(GRID_SIZE * -3, GRID_SIZE * -4, 0)
-  ];
-  let f = [
-    new THREE.Face3(0, 1, 2),
-    new THREE.Face3(0, 2, 3),
-    new THREE.Face3(3, 2, 5),
-    new THREE.Face3(3, 5, 4)
-  ];
-  let s = new THREE.Geometry();
-  s.vertices = v;
-  s.faces = f;
-  let s_m = new THREE.MeshLambertMaterial({
-    color: BASE_COLOR[0]
-  });
-  let slope = new THREE.Mesh(s, s_m);
-  slope.castShadow = true;
-  scene.add(slope);
+  let short_slope = slope(GRID_SIZE * 3, GRID_SIZE * 3, GRID_SIZE, BASE_COLOR[0]);
+  short_slope.position.set(GRID_SIZE * -3, GRID_SIZE * -5.5, 0);
+  short_slope.rotation.z = Math.PI;
 
   shape_line([
     new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
@@ -323,6 +337,9 @@ function create_slope() {
   ], [
     new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
     new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 4, 0)
+  ], [
+    new THREE.Vector3(GRID_SIZE * -7, GRID_SIZE * -4, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * -7, GRID_SIZE * -4, 0)
   ]);
 };
 create_slope();
@@ -474,12 +491,10 @@ function create_round_curve() {
       });
     });
     v.push(new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * 6, GRID_SIZE * 2));
-    points_list.map(function(line_points, i) {
-      if(i > 0) {
-        let cur = i * (len + 1);
-        f.push(new THREE.Face3(cur, v.length - 1, cur - len));
-      }
-    });
+    for(let i = 1; i<len; i++) {
+      let cur = i * len;
+      f.push(new THREE.Face3(cur - len, cur, v.length - 1));
+    }
 
     let c_g = new THREE.Geometry();
     c_g.vertices = v;
@@ -550,6 +565,15 @@ function create_half_pipe() {
     unit_cube(pos);
   });
 
+  let flat_g = new THREE.PlaneGeometry(GRID_SIZE * 3, GRID_SIZE * 5, 1);
+  let flat_m = new THREE.MeshBasicMaterial({
+    color: BASE_COLOR[3]
+  });
+  let flat = new THREE.Mesh(flat_g, flat_m);
+  flat.position.set(GRID_SIZE * 5.5, GRID_SIZE * 3, .5);
+  flat.castShadow = true;
+  scene.add(flat);
+
   let surface_1 = create_surface(GRID_SIZE, GRID_SIZE * 3, GRID_SIZE, BASE_COLOR[3]);
   surface_1.position.set(GRID_SIZE * 5.5, GRID_SIZE * 5.5, 0);
   surface_1.rotation.z = -Math.PI * .5;
@@ -572,7 +596,6 @@ function create_half_pipe() {
 
   let stair = create_stair(GRID_SIZE * 2, GRID_SIZE, GRID_SIZE, BASE_COLOR[3], GRID_SIZE * .2);
   stair.position.set(GRID_SIZE * 2, GRID_SIZE * -3.5, 0);
-  // stair.rotation.z = .5;
   stair.shape_line();
 
   shape_line([
@@ -582,17 +605,38 @@ function create_half_pipe() {
     new THREE.Vector3(GRID_SIZE * 4, 0, GRID_SIZE),
     new THREE.Vector3(GRID_SIZE * 7, 0, GRID_SIZE)
   ], [
+    new THREE.Vector3(GRID_SIZE * 4, GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 7, GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 7, GRID_SIZE * 6, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 4, GRID_SIZE * 6, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 4, GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 4, GRID_SIZE * 7, 0)
+  ], [
+    new THREE.Vector3(GRID_SIZE * 7, GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 7, GRID_SIZE * 7, 0)
+  ], [
     new THREE.Vector3(GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
     new THREE.Vector3(GRID_SIZE * 7, -GRID_SIZE * 7, 0)
+  ], [
+    new THREE.Vector3(GRID_SIZE * 4, GRID_SIZE, 0),
+    new THREE.Vector3(GRID_SIZE * 4, GRID_SIZE * 5, 0),
+  ], [
+    new THREE.Vector3(GRID_SIZE * 7, GRID_SIZE, 0),
+    new THREE.Vector3(GRID_SIZE * 7, GRID_SIZE * 5, 0)
   ]);
 }
 create_half_pipe();
+
+// 中间的方形台
+function create_square_slope() {
+}
+create_square_slope();
 
 camera.position.set(-TOTAL_SIZE, -TOTAL_SIZE, TOTAL_SIZE);
 
 function rotateView(radian) {
   camera.position.x = TOTAL_SIZE * Math.cos(radian);
-  // camera.position.y = - TOTAL_SIZE * Math.sin(radian);
+  camera.position.y = - TOTAL_SIZE * Math.sin(radian);
 
   camera.lookAt(new THREE.Vector3(0, 0, 0));
   camera.rotation.z = 0;
@@ -603,7 +647,7 @@ let radian = Math.PI * .5;
 rotateView(radian);
 function render() {
   if(view) {
-    radian = (radian + (Math.PI / 270)) % (Math.PI * 2);
+    radian = (radian + (Math.PI / 360)) % (Math.PI * 2);
 
     rotateView(radian);
   }
