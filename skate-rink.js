@@ -7,10 +7,10 @@ const HEIGHT = window.innerHeight;
 const TOTAL_SIZE = 512;
 
 const GRID_SIZE = TOTAL_SIZE * .0625;
-const BASE_COLOR = ['#f60', '#3cc', '#09f'];
+const BASE_COLOR = ['#f60', '#6d6', '#09f', '#3cc'];
 
 let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, .1, 10000);
+let camera = new THREE.PerspectiveCamera(40, WIDTH / HEIGHT, .1, 10000);
 let renderer = new THREE.WebGLRenderer();
 
 function axis(color, vec1, vec2) {
@@ -30,6 +30,7 @@ function axis(color, vec1, vec2) {
 
 function init() {
   renderer.setSize(WIDTH, HEIGHT);
+  renderer.shadowMapEnabled = true;
 
   let cvs = document.getElementById('cvs');
   cvs.innerHTML = '';
@@ -48,8 +49,22 @@ function init() {
   // z-axis
   axis('blue', new THREE.Vector3(0,0,-TOTAL_SIZE), new THREE.Vector3(0,0,TOTAL_SIZE));
 
-  let light = new THREE.AmbientLight( '#fff', 1 );
-  scene.add(light);
+  let a_light = new THREE.AmbientLight( '#fff', 1 );
+  scene.add(a_light);
+
+  // let d_light = new THREE.DirectionalLight("#fff", 1);
+  let d_light = new THREE.DirectionalLight("green", 1);
+  d_light.position.set(GRID_SIZE, GRID_SIZE * .5, GRID_SIZE);
+
+  d_light.shadow.camera.near = -TOTAL_SIZE; //产生阴影的最近距离
+  d_light.shadow.camera.far = TOTAL_SIZE; //产生阴影的最远距离
+  d_light.shadow.camera.left = -TOTAL_SIZE; //产生阴影距离位置的最左边位置
+  d_light.shadow.camera.right = TOTAL_SIZE; //最右边
+  d_light.shadow.camera.top = TOTAL_SIZE; //最上边
+  d_light.shadow.camera.bottom = -TOTAL_SIZE; //最下面
+
+  d_light.castShadow = true;
+  scene.add(d_light);
 };
 init();
 
@@ -63,6 +78,7 @@ function set_floor() {
   });
   let floor = new THREE.Mesh(flr_geometry, flr_material);
   floor.position.z = -.5;
+  floor.receiveShadow = true;
   scene.add(floor);
 
   let flb_geometry = new THREE.PlaneGeometry(TOTAL_SIZE, TOTAL_SIZE);
@@ -75,6 +91,7 @@ function set_floor() {
 };
 set_floor();
 
+// 基于点序列显示边线
 function shape_line() {
   let geometry = new THREE.Geometry();
   let m = new THREE.LineDashedMaterial({
@@ -91,61 +108,7 @@ function shape_line() {
   });
 }
 
-// 斜坡
-function create_slope() {
-  let cube_geometry = new THREE.CubeGeometry(GRID_SIZE, GRID_SIZE * 3, GRID_SIZE);
-  let cube_material = new THREE.MeshBasicMaterial({
-    color: BASE_COLOR[0]
-  });
-  let cube = new THREE.Mesh(cube_geometry, cube_material);
-  cube.position.x = -GRID_SIZE * 6.5;
-  cube.position.y = -GRID_SIZE * 5.5;
-  cube.position.z = GRID_SIZE * .5;
-  scene.add(cube);
-
-  let v = [
-    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -7, GRID_SIZE),
-    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -7, 0),
-    new THREE.Vector3(GRID_SIZE * -3, GRID_SIZE * -7, 0),
-    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -4, GRID_SIZE),
-    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -4, 0),
-    new THREE.Vector3(GRID_SIZE * -3, GRID_SIZE * -4, 0)
-  ];
-  let f = [
-    new THREE.Face3(0, 1, 2),
-    new THREE.Face3(0, 2, 3),
-    new THREE.Face3(3, 2, 5),
-    new THREE.Face3(3, 5, 4)
-  ];
-  let s = new THREE.Geometry();
-  s.vertices = v;
-  s.faces = f;
-  let s_m = new THREE.MeshLambertMaterial({
-    color: BASE_COLOR[0]
-  });
-  let slope = new THREE.Mesh(s, s_m);
-  scene.add(slope);
-
-  shape_line([
-    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
-    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 4, GRID_SIZE),
-    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
-    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 7, GRID_SIZE),
-    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
-    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, 0),
-  ], [
-    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
-    new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 4, 0)
-  ], [
-    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 7, GRID_SIZE),
-    new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 7, 0)
-  ], [
-    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
-    new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 4, 0)
-  ]);
-};
-create_slope();
-
+// 曲面
 function create_surface(x, y, z, c) {
   let d = x * -.5;
   let dis = GRID_SIZE * 0.125;
@@ -188,8 +151,6 @@ function create_surface(x, y, z, c) {
   }
   f.push(new THREE.Face3(v.length - 2, v.length - 3, v.length - 1));
   f.push(new THREE.Face3(v.length - 1, v.length - 3, v.length - 4));
-  // f.push(new THREE.Face3(v.length - 1, v.length - 3, v.length - 2));
-  // f.push(new THREE.Face3(v.length - 4, v.length - 3, v.length - 1));
 
   let c_g = new THREE.Geometry();
   c_g.vertices = v;
@@ -223,10 +184,148 @@ function create_surface(x, y, z, c) {
     }
   }
 
+  curve.castShadow = true;
   scene.add(curve);
 
   return curve;
 }
+
+// 楼梯
+function create_stair(x, y, z, c, h) {
+  let v = [];
+  let f = [];
+  y /= 2;
+
+  let len = Math.floor(z / h);
+  let w = x / len;
+  h = z / len;
+
+  let lines_point = [];
+
+  for(let i=0; i<len; i++) {
+    v.push(new THREE.Vector3(i * w, -y, i * h));
+    v.push(new THREE.Vector3(i * w, y, i * h));
+    v.push(new THREE.Vector3(i * w, y, (i + 1) * h));
+    v.push(new THREE.Vector3(i * w, -y, (i + 1) * h));
+
+    // 台阶的前方与上方
+    f.push(new THREE.Face3(i * 4, i * 4 + 2, i * 4 + 1));
+    f.push(new THREE.Face3(i * 4, i * 4 + 3, i * 4 + 2));
+    f.push(new THREE.Face3(i * 4 + 3, i * 4 + 5, i * 4 + 2));
+    f.push(new THREE.Face3(i * 4 + 3, i * 4 + 4, i * 4 + 5));
+
+    // 每个小台阶的侧面
+    f.push(new THREE.Face3(i * 4, i * 4 + 4, i * 4 + 3));
+    f.push(new THREE.Face3(i * 4 + 1, i * 4 + 2, i * 4 + 5));
+
+
+    lines_point.push([
+      [i * w, -y, i * h],
+      [i * w, -y, (i + 1) * h],
+      [(i + 1) * w, -y, (i + 1) * h]
+    ]);
+
+    lines_point.push([
+      [i * w, y, i * h],
+      [i * w, y, (i + 1) * h],
+      [(i + 1) * w, y, (i + 1) * h]
+    ]);
+  }
+  v.push(new THREE.Vector3(x, -y, z));
+  v.push(new THREE.Vector3(x, y, z));
+  v.push(new THREE.Vector3(x, -y, 0));
+  v.push(new THREE.Vector3(x, y, 0));
+
+  f.push(new THREE.Face3(0, v.length - 2, v.length - 4));
+  f.push(new THREE.Face3(1, v.length - 3, v.length - 1));
+
+  let c_g = new THREE.Geometry();
+  c_g.vertices = v;
+  c_g.faces = f;
+  let c_m = new THREE.MeshLambertMaterial({
+    color: c
+  });
+  let curve = new THREE.Mesh(c_g, c_m);
+
+  curve.shape_line = function() {
+    let p = curve.position,
+        r = curve.rotation;
+
+    lines_point.map(function(list) {
+      let cur_line = [];
+      console.log(list);
+      list.map(function(points) {
+        cur_line.push(
+          new THREE.Vector3(points[0] + p.x, points[1] + p.y, points[2] + p.z)
+        )
+
+        shape_line(cur_line);
+      });
+    });
+  };
+
+  curve.castShadow = true;
+  scene.add(curve);
+
+  return curve;
+}
+
+// 斜坡
+function create_slope() {
+  let cube_geometry = new THREE.CubeGeometry(GRID_SIZE, GRID_SIZE * 3, GRID_SIZE);
+  let cube_material = new THREE.MeshBasicMaterial({
+    color: BASE_COLOR[0]
+  });
+  let cube = new THREE.Mesh(cube_geometry, cube_material);
+  cube.position.x = -GRID_SIZE * 6.5;
+  cube.position.y = -GRID_SIZE * 5.5;
+  cube.position.z = GRID_SIZE * .5;
+  cube.castShadow = true;
+  scene.add(cube);
+
+  let v = [
+    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -7, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -7, 0),
+    new THREE.Vector3(GRID_SIZE * -3, GRID_SIZE * -7, 0),
+    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -4, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * -6, GRID_SIZE * -4, 0),
+    new THREE.Vector3(GRID_SIZE * -3, GRID_SIZE * -4, 0)
+  ];
+  let f = [
+    new THREE.Face3(0, 1, 2),
+    new THREE.Face3(0, 2, 3),
+    new THREE.Face3(3, 2, 5),
+    new THREE.Face3(3, 5, 4)
+  ];
+  let s = new THREE.Geometry();
+  s.vertices = v;
+  s.faces = f;
+  let s_m = new THREE.MeshLambertMaterial({
+    color: BASE_COLOR[0]
+  });
+  let slope = new THREE.Mesh(s, s_m);
+  slope.castShadow = true;
+  scene.add(slope);
+
+  shape_line([
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 4, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 7, -GRID_SIZE * 7, 0),
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 4, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 7, 0)
+  ], [
+    new THREE.Vector3(-GRID_SIZE * 6, -GRID_SIZE * 4, GRID_SIZE),
+    new THREE.Vector3(-GRID_SIZE * 3, -GRID_SIZE * 4, 0)
+  ]);
+};
+create_slope();
 
 // 高台
 function create_hathpace() {
@@ -236,6 +335,7 @@ function create_hathpace() {
   });
   let cube = new THREE.Mesh(cube_geometry, cube_material);
   cube.position.set(-GRID_SIZE * 6.5, -GRID_SIZE * 1.5, GRID_SIZE * 1.5);
+  cube.castShadow = true;
   scene.add(cube);
 
   let curve = create_surface(GRID_SIZE * 2, GRID_SIZE * 3, GRID_SIZE * 3, BASE_COLOR[1]);
@@ -269,6 +369,7 @@ function create_round_curve() {
     let y = cube_pos[1];
     let c = cube.clone();
     c.position.set(GRID_SIZE * x, GRID_SIZE * y, GRID_SIZE);
+    c.castShadow = true;
     scene.add(c);
     return c;
   }
@@ -387,6 +488,7 @@ function create_round_curve() {
       color: BASE_COLOR[2]
     });
     let curve = new THREE.Mesh(c_g, c_m);
+    curve.castShadow = true;
     scene.add(curve);
   }
   surface();
@@ -417,6 +519,74 @@ function create_round_curve() {
   ]);
 };
 create_round_curve();
+
+// 长 U 台
+function create_half_pipe() {
+  let cube_geometry = new THREE.CubeGeometry(GRID_SIZE * 3, GRID_SIZE * 1, GRID_SIZE * 1);
+  let cube_material = new THREE.MeshBasicMaterial({
+    color: BASE_COLOR[3]
+  });
+  let cube = new THREE.Mesh(cube_geometry, cube_material);
+  function unit_cube(cube_pos) {
+    let x = cube_pos[0];
+    let y = cube_pos[1];
+    let c = cube.clone();
+    c.position.set(GRID_SIZE * x, GRID_SIZE * y, GRID_SIZE * .5);
+    c.castShadow = true;
+    scene.add(c);
+    return c;
+  }
+
+  [
+    [5.5, 6.5],
+    [5.5, -.5],
+    [5.5, -1.5],
+    [5.5, -2.5],
+    [5.5, -3.5],
+    [5.5, -4.5],
+    [5.5, -5.5],
+    [5.5, -6.5]
+  ].map(function(pos) {
+    unit_cube(pos);
+  });
+
+  let surface_1 = create_surface(GRID_SIZE, GRID_SIZE * 3, GRID_SIZE, BASE_COLOR[3]);
+  surface_1.position.set(GRID_SIZE * 5.5, GRID_SIZE * 5.5, 0);
+  surface_1.rotation.z = -Math.PI * .5;
+  surface_1.strokes(true, true);
+
+  let surface_2 = create_surface(GRID_SIZE, GRID_SIZE * 3, GRID_SIZE, BASE_COLOR[3]);
+  surface_2.position.set(GRID_SIZE * 5.5, GRID_SIZE * .5, 0);
+  surface_2.rotation.z = Math.PI * .5;
+  surface_2.strokes(true, true);
+
+  let surface_3 = create_surface(GRID_SIZE * 2, GRID_SIZE * 3, GRID_SIZE, BASE_COLOR[3]);
+  surface_3.position.set(GRID_SIZE * 3, GRID_SIZE * -1.5, 0);
+  surface_3.rotation.z = Math.PI;
+  surface_3.strokes(true, true);
+
+  let surface_4 = create_surface(GRID_SIZE * 2, GRID_SIZE * 3, GRID_SIZE, BASE_COLOR[3]);
+  surface_4.position.set(GRID_SIZE * 3, GRID_SIZE * -5.5, 0);
+  surface_4.rotation.z = Math.PI;
+  surface_4.strokes(true, true);
+
+  let stair = create_stair(GRID_SIZE * 2, GRID_SIZE, GRID_SIZE, BASE_COLOR[3], GRID_SIZE * .2);
+  stair.position.set(GRID_SIZE * 2, GRID_SIZE * -3.5, 0);
+  // stair.rotation.z = .5;
+  stair.shape_line();
+
+  shape_line([
+    new THREE.Vector3(GRID_SIZE * 7, 0, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 4, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 4, 0, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 7, 0, GRID_SIZE)
+  ], [
+    new THREE.Vector3(GRID_SIZE * 7, -GRID_SIZE * 7, GRID_SIZE),
+    new THREE.Vector3(GRID_SIZE * 7, -GRID_SIZE * 7, 0)
+  ]);
+}
+create_half_pipe();
 
 camera.position.set(-TOTAL_SIZE, -TOTAL_SIZE, TOTAL_SIZE);
 
