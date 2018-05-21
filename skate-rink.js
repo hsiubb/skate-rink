@@ -2,31 +2,19 @@ import * as THREE from "three";
 
 import skate_rink from './skate-rink-512.png';
 
+import { TOTAL_SIZE, GRID_SIZE, BASE_COLOR, scene } from './component/setting.js';
+
 const WIDTH = window.innerWidth;
 const HEIGHT = window.innerHeight;
-const TOTAL_SIZE = 512;
 
-const GRID_SIZE = TOTAL_SIZE * .0625;
-const BASE_COLOR = ['#f60', '#6d6', '#09f', '#3cc'];
+const camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, .1, 10000);
+const renderer = new THREE.WebGLRenderer();
 
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, .1, 10000);
-let renderer = new THREE.WebGLRenderer();
-
-function axis(color, vec1, vec2) {
-  let g = new THREE.Geometry();
-  let m = new THREE.LineDashedMaterial({
-  	color: color,
-    dashSize: 3,
-    gapSize: 2
-  });
-  g.vertices.push(vec1);
-  g.vertices.push(vec2);
-  let axis = new THREE.Line(g,m);
-  axis.computeLineDistances();
-  axis.position.z = 0;
-  scene.add(axis);
-}
+import shape_line from './component/shape_line.js';
+import slope from './component/slope.js';
+import create_stair from './component/stair.js';
+import create_surface from './component/surface.js';
+import reference_line from './component/reference.js';
 
 function init() {
   renderer.setSize(WIDTH, HEIGHT);
@@ -36,21 +24,7 @@ function init() {
   cvs.innerHTML = '';
   cvs.appendChild(renderer.domElement);
 
-  function reference_line() {
-    // x-axis
-    for(let x = -TOTAL_SIZE; x <= TOTAL_SIZE; x += GRID_SIZE) {
-      axis('red', new THREE.Vector3(-TOTAL_SIZE,x,0), new THREE.Vector3(TOTAL_SIZE,x,0));
-    }
-
-    // y-axis
-    for(let y = -TOTAL_SIZE; y <= TOTAL_SIZE; y += GRID_SIZE) {
-      axis('green', new THREE.Vector3(y,-TOTAL_SIZE,0), new THREE.Vector3(y,TOTAL_SIZE,0));
-    }
-
-    // z-axis
-    axis('blue', new THREE.Vector3(0,0,-TOTAL_SIZE), new THREE.Vector3(0,0,TOTAL_SIZE));
-  }
-  // reference_line();
+  reference_line(TOTAL_SIZE);
 
   let a_light = new THREE.AmbientLight( '#fff', 1 );
   scene.add(a_light);
@@ -93,216 +67,6 @@ function set_floor() {
 };
 set_floor();
 
-// 基于点序列显示边线
-function shape_line() {
-  let geometry = new THREE.Geometry();
-  // let m = new THREE.LineDashedMaterial({
-  let m = new THREE.LineBasicMaterial({
-  	color: '#fff'
-  });
-  [].slice.call(arguments).map(function(list) {
-    let g = geometry.clone();
-    for(let i=0; i<list.length; i++) {
-      g.vertices.push(list[i]);
-    }
-    let line = new THREE.Line(g, m);
-    line.computeLineDistances();
-    scene.add(line);
-  });
-}
-
-// 斜坡
-function slope(x, y, z, c) {
-  y /= 2;
-  let v = [
-    new THREE.Vector3(0, -y, 0),
-    new THREE.Vector3(x, -y, 0),
-    new THREE.Vector3(x, -y, z),
-    new THREE.Vector3(x, y, z),
-    new THREE.Vector3(x, y, 0),
-    new THREE.Vector3(0, y, 0),
-  ];
-  let f = [
-    new THREE.Face3(0, 1, 2),
-    new THREE.Face3(0, 2, 3),
-    new THREE.Face3(0, 3, 5),
-    new THREE.Face3(3, 4, 5)
-  ];
-
-  let s = new THREE.Geometry();
-  s.vertices = v;
-  s.faces = f;
-  let s_m = new THREE.MeshLambertMaterial({
-    color: BASE_COLOR[0]
-  });
-  let slope = new THREE.Mesh(s, s_m);
-  slope.castShadow = true;
-
-  scene.add(slope);
-  return slope;
-}
-
-// 曲面
-function create_surface(x, y, z, c) {
-  let d = x * -.5;
-  let dis = GRID_SIZE * 0.125;
-  y /= 2;
-
-  let c_1 = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3( d, -y, z ),
-    new THREE.Vector3( d, -y, 0 ),
-    new THREE.Vector3( -d, -y, 0 )
-  );
-  let c_2 = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3( d, y, z ),
-    new THREE.Vector3( d, y, 0 ),
-    new THREE.Vector3( -d, y, 0 )
-  );
-
-  let points_1 = c_1.getPoints( x / dis );
-  let points_2 = c_2.getPoints( x / dis );
-
-  let v = [];
-  let f = [];
-
-  for(let i = 0, j = -x; j <= 0; i++, j += dis) {
-    v.push(new THREE.Vector3(d, -y, points_1[i].z));
-    v.push(points_1[i]);
-    v.push(points_2[i]);
-    v.push(new THREE.Vector3(d, y, points_1[i].z));
-
-    if(i) {
-      let k = 4 * i;
-      f.push(new THREE.Face3(k - 4, k    , k + 1));
-      f.push(new THREE.Face3(k - 3, k - 4, k + 1));
-
-      f.push(new THREE.Face3(k - 2, k - 3, k + 2));
-      f.push(new THREE.Face3(k - 3, k + 1, k + 2));
-
-      f.push(new THREE.Face3(k - 2, k + 2, k + 3));
-      f.push(new THREE.Face3(k - 1, k - 2, k + 3));
-    }
-  }
-  f.push(new THREE.Face3(v.length - 2, v.length - 3, v.length - 1));
-  f.push(new THREE.Face3(v.length - 1, v.length - 3, v.length - 4));
-
-  let c_g = new THREE.Geometry();
-  c_g.vertices = v;
-  c_g.faces = f;
-  let c_m = new THREE.MeshLambertMaterial({
-    color: c
-  });
-  let curve = new THREE.Mesh(c_g, c_m);
-
-  curve.strokes = function(a, b) {
-    let p = curve.position,
-        r = curve.rotation,
-        m = new THREE.LineDashedMaterial({
-          color: '#fff'
-        });
-    let g_1, g_2, l_1, l_2;
-
-    if(a) {
-      g_1 = new THREE.BufferGeometry().setFromPoints( points_1 );
-      l_1 = new THREE.Line( g_1, m );
-      l_1.position.set(p.x, p.y, p.z);
-      l_1.rotation.set(r.x, r.y, r.z);
-      scene.add(l_1);
-    }
-    if(b) {
-      g_2 = new THREE.BufferGeometry().setFromPoints( points_2 );
-      l_2 = new THREE.Line( g_2, m );
-      l_2.position.set(p.x, p.y, p.z);
-      l_2.rotation.set(r.x, r.y, r.z);
-      scene.add(l_2);
-    }
-  }
-
-  curve.castShadow = true;
-  scene.add(curve);
-
-  return curve;
-}
-
-// 楼梯
-function create_stair(x, y, z, c, h) {
-  let v = [];
-  let f = [];
-  y /= 2;
-
-  let len = Math.floor(z / h);
-  let w = x / len;
-  h = z / len;
-
-  let lines_point = [];
-
-  for(let i=0; i<len; i++) {
-    v.push(new THREE.Vector3(i * w, -y, i * h));
-    v.push(new THREE.Vector3(i * w, y, i * h));
-    v.push(new THREE.Vector3(i * w, y, (i + 1) * h));
-    v.push(new THREE.Vector3(i * w, -y, (i + 1) * h));
-
-    // 台阶的前方与上方
-    f.push(new THREE.Face3(i * 4, i * 4 + 2, i * 4 + 1));
-    f.push(new THREE.Face3(i * 4, i * 4 + 3, i * 4 + 2));
-    f.push(new THREE.Face3(i * 4 + 3, i * 4 + 5, i * 4 + 2));
-    f.push(new THREE.Face3(i * 4 + 3, i * 4 + 4, i * 4 + 5));
-
-    // 每个小台阶的侧面
-    f.push(new THREE.Face3(i * 4, i * 4 + 4, i * 4 + 3));
-    f.push(new THREE.Face3(i * 4 + 1, i * 4 + 2, i * 4 + 5));
-
-
-    lines_point.push([
-      [i * w, -y, i * h],
-      [i * w, -y, (i + 1) * h],
-      [(i + 1) * w, -y, (i + 1) * h]
-    ]);
-
-    lines_point.push([
-      [i * w, y, i * h],
-      [i * w, y, (i + 1) * h],
-      [(i + 1) * w, y, (i + 1) * h]
-    ]);
-  }
-  v.push(new THREE.Vector3(x, -y, z));
-  v.push(new THREE.Vector3(x, y, z));
-  v.push(new THREE.Vector3(x, -y, 0));
-  v.push(new THREE.Vector3(x, y, 0));
-
-  f.push(new THREE.Face3(0, v.length - 2, v.length - 4));
-  f.push(new THREE.Face3(1, v.length - 3, v.length - 1));
-
-  let c_g = new THREE.Geometry();
-  c_g.vertices = v;
-  c_g.faces = f;
-  let c_m = new THREE.MeshLambertMaterial({
-    color: c
-  });
-  let curve = new THREE.Mesh(c_g, c_m);
-
-  curve.shape_line = function() {
-    let p = curve.position,
-        r = curve.rotation;
-
-    lines_point.map(function(list) {
-      let cur_line = [];
-      console.log(list);
-      list.map(function(points) {
-        cur_line.push(
-          new THREE.Vector3(points[0] + p.x, points[1] + p.y, points[2] + p.z)
-        )
-
-        shape_line(cur_line);
-      });
-    });
-  };
-
-  curve.castShadow = true;
-  scene.add(curve);
-
-  return curve;
-}
 
 // 斜坡
 function create_slope() {
