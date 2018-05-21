@@ -1,8 +1,7 @@
 import * as THREE from "three";
+import { GRID_SIZE, scene } from './setting.js';
 
-import { WIDTH, HEIGHT, TOTAL_SIZE, GRID_SIZE, BASE_COLOR, scene } from './setting.js';
-
-// «˙√Ê
+// Êõ≤Èù¢
 function create_surface(x, y, z, c) {
   let d = x * -.5;
   let dis = GRID_SIZE * 0.125;
@@ -54,7 +53,9 @@ function create_surface(x, y, z, c) {
   });
   let curve = new THREE.Mesh(c_g, c_m);
 
-  curve.strokes = function(a, b) {
+  let group = new THREE.Group();
+
+  group.strokes = function(a, b) {
     let p = curve.position,
         r = curve.rotation,
         m = new THREE.LineDashedMaterial({
@@ -67,21 +68,22 @@ function create_surface(x, y, z, c) {
       l_1 = new THREE.Line( g_1, m );
       l_1.position.set(p.x, p.y, p.z);
       l_1.rotation.set(r.x, r.y, r.z);
-      scene.add(l_1);
+      group.add(l_1);
     }
     if(b) {
       g_2 = new THREE.BufferGeometry().setFromPoints( points_2 );
       l_2 = new THREE.Line( g_2, m );
       l_2.position.set(p.x, p.y, p.z);
       l_2.rotation.set(r.x, r.y, r.z);
-      scene.add(l_2);
+      group.add(l_2);
     }
   }
 
   curve.castShadow = true;
-  scene.add(curve);
+  group.add(curve);
 
-  return curve;
+  scene.add(group);
+  return group;
 }
 
 export default create_surface;

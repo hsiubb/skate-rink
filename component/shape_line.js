@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { scene } from './setting.js';
 
-// »ùÓÚµãĞòÁĞÏÔÊ¾±ßÏß
+// åŸºäºç‚¹åºåˆ—æ˜¾ç¤ºè¾¹çº¿
 function shape_line() {
   let geometry = new THREE.Geometry();
   let m = new THREE.LineBasicMaterial({
@@ -17,4 +17,5 @@ function shape_line() {
     scene.add(line);
   });
 }
+
 export default shape_line;

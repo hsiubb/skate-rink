@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { scene } from './setting.js';
 import shape_line from './shape_line.js';
 
-// 楼梯
+// 妤兼
 function create_stair(x, y, z, c, h) {
   let v = [];
   let f = [];
@@ -20,13 +20,13 @@ function create_stair(x, y, z, c, h) {
     v.push(new THREE.Vector3(i * w, y, (i + 1) * h));
     v.push(new THREE.Vector3(i * w, -y, (i + 1) * h));
 
-    // 台阶的前方与上方
+    // 鍙伴樁鐨勫墠鏂逛笌涓婃柟
     f.push(new THREE.Face3(i * 4, i * 4 + 2, i * 4 + 1));
     f.push(new THREE.Face3(i * 4, i * 4 + 3, i * 4 + 2));
     f.push(new THREE.Face3(i * 4 + 3, i * 4 + 5, i * 4 + 2));
     f.push(new THREE.Face3(i * 4 + 3, i * 4 + 4, i * 4 + 5));
 
-    // 每个小台阶的侧面
+    // 姣忎釜灏忓彴闃剁殑渚ч潰
     f.push(new THREE.Face3(i * 4, i * 4 + 4, i * 4 + 3));
     f.push(new THREE.Face3(i * 4 + 1, i * 4 + 2, i * 4 + 5));
 

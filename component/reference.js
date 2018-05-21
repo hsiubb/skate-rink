@@ -1,5 +1,4 @@
 import * as THREE from "three";
-
 import { GRID_SIZE, scene } from './setting.js';
 
 function axis(color, vec1, vec2) {
@@ -17,7 +16,7 @@ function axis(color, vec1, vec2) {
   scene.add(axis);
 }
 
-// ≤Œøºœﬂ
+// ÂèÇËÄÉÁ∫ø
 export default function reference_line(size) {
   // x-axis
   for(let x = -size; x <= size; x += GRID_SIZE) {

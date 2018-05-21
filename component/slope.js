@@ -1,11 +1,7 @@
 import * as THREE from "three";
-
-// import { WIDTH, HEIGHT, TOTAL_SIZE, GRID_SIZE, BASE_COLOR } from 'setting';
 import { scene } from './setting.js';
 
-console.log(scene);
-
-// –±∆¬
+// ÊñúÂù°
 function slope(x, y, z, c) {
   y /= 2;
   let v = [
