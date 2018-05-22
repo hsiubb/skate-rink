@@ -82,7 +82,7 @@ function create_surface(x, y, z, c) {
   curve.castShadow = true;
   group.add(curve);
 
-  scene.add(group);
+  // scene.add(group);
   return group;
 }
 

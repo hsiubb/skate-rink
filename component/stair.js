@@ -4,6 +4,8 @@ import shape_line from './shape_line.js';
 
 // 楼梯
 function create_stair(x, y, z, c, h) {
+  let group = new THREE.Group();
+
   let v = [];
   let f = [];
   y /= 2;
@@ -77,6 +79,7 @@ function create_stair(x, y, z, c, h) {
   };
 
   curve.castShadow = true;
+
   scene.add(curve);
 
   return curve;
