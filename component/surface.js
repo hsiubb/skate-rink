@@ -79,7 +79,8 @@ function create_surface(x, y, z, c) {
     }
   }
 
-  curve.castShadow = true;
+  group.castShadow = true;
+  group.receiveShadow = true;
   group.add(curve);
 
   // scene.add(group);

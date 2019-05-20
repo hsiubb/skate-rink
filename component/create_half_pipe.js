@@ -12,28 +12,9 @@ function create_half_pipe(color) {
         color: color
     });
     let cube = new THREE.Mesh(cube_geometry, cube_material);
-    function unit_cube(cube_pos) {
-        let x = cube_pos[0];
-        let y = cube_pos[1];
-        let c = cube.clone();
-        c.position.set(GRID_SIZE * x, GRID_SIZE * y, GRID_SIZE * .5);
-        c.castShadow = true;
-        group.add(c);
-        return c;
-    }
-
-    [
-        [5.5, 6.5],
-        [5.5, -.5],
-        [5.5, -1.5],
-        [5.5, -2.5],
-        [5.5, -3.5],
-        [5.5, -4.5],
-        [5.5, -5.5],
-        [5.5, -6.5]
-    ].map(function (pos) {
-        unit_cube(pos);
-    });
+    cube.position.set(GRID_SIZE * 5.5, GRID_SIZE * 6.5, GRID_SIZE * .5);
+    cube.castShadow = true;
+    group.add(cube);
 
     let flat_g = new THREE.PlaneGeometry(GRID_SIZE * 3, GRID_SIZE * 5, 1);
     let flat_m = new THREE.MeshBasicMaterial({
@@ -55,23 +36,6 @@ function create_half_pipe(color) {
     surface_2.rotation.z = Math.PI * .5;
     surface_2.strokes(true, true);
     group.add(surface_2);
-
-    let surface_3 = create_surface(GRID_SIZE * 2, GRID_SIZE * 3, GRID_SIZE, color);
-    surface_3.position.set(GRID_SIZE * 3, GRID_SIZE * -1.5, 0);
-    surface_3.rotation.z = Math.PI;
-    surface_3.strokes(true, true);
-    group.add(surface_3);
-
-    let surface_4 = create_surface(GRID_SIZE * 2, GRID_SIZE * 3, GRID_SIZE, color);
-    surface_4.position.set(GRID_SIZE * 3, GRID_SIZE * -5.5, 0);
-    surface_4.rotation.z = Math.PI;
-    surface_4.strokes(true, true);
-    group.add(surface_4);
-
-    let stair = create_stair(GRID_SIZE * 2, GRID_SIZE, GRID_SIZE, color, GRID_SIZE * .2);
-    stair.position.set(GRID_SIZE * 2, GRID_SIZE * -3.5, 0);
-    stair.shape_line();
-
 
     scene.add(group);
 

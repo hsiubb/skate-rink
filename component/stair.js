@@ -60,6 +60,7 @@ function create_stair(x, y, z, c, h) {
     color: c
   });
   let curve = new THREE.Mesh(c_g, c_m);
+  curve.receiveShadow = true;
 
   curve.shape_line = function() {
     let p = curve.position,
@@ -79,6 +80,7 @@ function create_stair(x, y, z, c, h) {
   };
 
   curve.castShadow = true;
+  // curve.receiveShadow = true;
 
   scene.add(curve);
 
